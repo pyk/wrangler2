@@ -170,13 +170,26 @@ export function DevImplementation(props: DevProps): JSX.Element {
 }
 
 function InteractiveDevSession(props: DevProps) {
+	const [ip, setIp] = useState(props.ip);
+	const [port, setPort] = useState(props.port);
+
+	const onReady = (newIp: string, newPort: number) => {
+		if (newIp !== ip || newPort !== port) {
+			setIp(newIp);
+			setPort(newPort);
+			if (props.onReady) {
+				props.onReady(newIp, newPort);
+			}
+		}
+	};
+
 	const toggles = useHotkeys({
 		initial: {
 			local: props.initialMode === "local",
 			tunnel: false,
 		},
-		port: props.port,
-		ip: props.ip,
+		port: port,
+		ip: ip,
 		inspectorPort: props.inspectorPort,
 		inspect: props.inspect,
 		localProtocol: props.localProtocol,
@@ -187,7 +200,7 @@ function InteractiveDevSession(props: DevProps) {
 
 	return (
 		<>
-			<DevSession {...props} local={toggles.local} />
+			<DevSession {...props} local={toggles.local} onReady={onReady} />
 			<Box borderStyle="round" paddingLeft={1} paddingRight={1}>
 				<Text bold={true}>[b]</Text>
 				<Text> open a browser, </Text>
