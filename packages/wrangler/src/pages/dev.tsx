@@ -385,6 +385,9 @@ export const Handler = async ({
 					define: {
 						__ROUTES__: routes,
 					},
+					inject: [
+						resolve(getBasePath(), "src/pages/functions/routing-rules-util.ts"),
+					],
 				});
 			};
 
