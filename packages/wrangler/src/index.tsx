@@ -5,7 +5,7 @@ import supportsColor from "supports-color";
 import { ProxyAgent, setGlobalDispatcher } from "undici";
 import makeCLI from "yargs";
 import { version as wranglerVersion } from "../package.json";
-import { readConfig } from "./config";
+import { loadDotEnv, readConfig } from "./config";
 import { d1 } from "./d1";
 import { deleteHandler, deleteOptions } from "./delete";
 import {
@@ -40,6 +40,7 @@ import { listScopes, login, logout, validateScopeKeys } from "./user";
 import { whoami } from "./whoami";
 
 import type { Config } from "./config";
+import type { CommonYargsOptions } from "./yargs-types";
 import type Yargs from "yargs";
 
 export type ConfigPath = string | undefined;
@@ -162,7 +163,9 @@ export function demandOneOfOption(...options: string[]) {
 export class CommandLineArgsError extends Error {}
 
 export function createCLIParser(argv: string[]) {
-	const wrangler = makeCLI(argv)
+	// Type check result against CommonYargsOptions to make sure we've included
+	// all common options
+	const wrangler: Yargs.Argv<CommonYargsOptions> = makeCLI(argv)
 		.strict()
 		// We handle errors ourselves in a try-catch around `yargs.parse`.
 		// If you want the "help info" to be displayed then throw an instance of `CommandLineArgsError`.
@@ -177,10 +180,40 @@ export function createCLIParser(argv: string[]) {
 			throw error;
 		})
 		.scriptName("wrangler")
-		.wrap(null);
+		.wrap(null)
+		// Define global options here, so they get included in the `Argv` type of
+		// the `wrangler` variable
+		.option("v", {
+			describe: "Show version number",
+			alias: "version",
+			type: "boolean",
+		})
+		.option("config", {
+			alias: "c",
+			describe: "Path to .toml configuration file",
+			type: "string",
+			requiresArg: true,
+		})
+		.option("env", {
+			alias: "e",
+			describe: "Perform on a specific environment",
+			type: "string",
+			requiresArg: true,
+		})
+		.check((args) => {
+			// Grab locally specified env params from `.env` file
+			const loaded = loadDotEnv(".env", args.env);
+			for (const [key, value] of Object.entries(loaded?.parsed ?? {})) {
+				if (!(key in process.env)) process.env[key] = value;
+			}
+			return true;
+		});
+
+	wrangler.group(["config", "env", "help", "version"], "Flags:");
+	wrangler.help().alias("h", "help");
 
 	// Default help command that supports the subcommands
-	const subHelp: Yargs.CommandModule = {
+	const subHelp: Yargs.CommandModule<CommonYargsOptions, CommonYargsOptions> = {
 		command: ["*"],
 		handler: async (args) => {
 			setImmediate(() =>
@@ -483,22 +516,6 @@ export function createCLIParser(argv: string[]) {
 			}
 		}
 	);
-
-	wrangler.option("v", {
-		describe: "Show version number",
-		alias: "version",
-		type: "boolean",
-	});
-
-	wrangler.option("config", {
-		alias: "c",
-		describe: "Path to .toml configuration file",
-		type: "string",
-		requiresArg: true,
-	});
-
-	wrangler.group(["config", "help", "version"], "Flags:");
-	wrangler.help().alias("h", "help");
 
 	wrangler.exitProcess(false);
 
