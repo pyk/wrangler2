@@ -19,14 +19,11 @@ import { PAGES_CONFIG_CACHE_FILENAME } from "./constants";
 import { FunctionsNoRoutesError, getFunctionsNoRoutesWarning } from "./errors";
 import { validateRoutes } from "./functions/routes-validation";
 import { listProjects } from "./projects";
+import { promptSelectProject } from "./prompt-select-project";
 import { upload } from "./upload";
 import { pagesBetaWarning } from "./utils";
-import type {
-	Deployment,
-	PagesConfigCache,
-	Project,
-	YargsOptionsToInterface,
-} from "./types";
+import type { YargsOptionsToInterface } from "../yargs-types";
+import type { Deployment, PagesConfigCache, Project } from "./types";
 import type { Argv } from "yargs";
 
 type PublishArgs = YargsOptionsToInterface<typeof Options>;
@@ -132,24 +129,7 @@ export const Handler = async ({
 
 		switch (existingOrNew) {
 			case "existing": {
-				projectName = await new Promise((resolve) => {
-					const { unmount } = render(
-						<>
-							<Text>Select a project:</Text>
-							<SelectInput
-								items={projects.map((project) => ({
-									key: project.name,
-									label: project.name,
-									value: project,
-								}))}
-								onSelect={async (selected) => {
-									resolve(selected.value.name);
-									unmount();
-								}}
-							/>
-						</>
-					);
-				});
+				projectName = await promptSelectProject({ accountId });
 				break;
 			}
 			case "new": {
