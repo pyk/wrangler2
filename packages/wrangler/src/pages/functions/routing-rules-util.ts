@@ -1,20 +1,3 @@
-export function transformRoutingRuleToRegExp(rule: string): RegExp {
-	let transformedRule = rule;
-
-	// /foo/* is a special case because it needs to match /foo/* and /foo
-	if (rule.endsWith("/*") && rule.length > 2) {
-		// /foo/* => /foo(/*)?
-		// make `/*` an optional group so we can match both
-		transformedRule = `${rule.substring(0, rule.length - 2)}(/*)?`;
-	}
-
-	// /foo* => /foo.* => ^/foo.*$
-	transformedRule = `^${transformedRule.replace("*", ".*")}$`;
-
-	// ^/foo.*$ => /^\/foo.*$/
-	return new RegExp(transformedRule);
-}
-
 /**
  * @param pathname A pathname string, such as `/foo` or `/foo/bar`
  * @param routingRule The routing rule, such as `/foo/*`
@@ -40,4 +23,30 @@ export function isRoutingRuleMatch(
 
 	const ruleRegExp = transformRoutingRuleToRegExp(routingRule);
 	return pathname.match(ruleRegExp) !== null;
+}
+
+function transformRoutingRuleToRegExp(rule: string): RegExp {
+	let transformedRule;
+
+	if (rule === "/" || rule === "/*") {
+		transformedRule = rule;
+	} else if (rule.endsWith("/*")) {
+		// make `/*` an optional group so we can match both /foo/* and /foo
+		// /foo/* => /foo(/*)?
+		transformedRule = `${rule.substring(0, rule.length - 2)}(/*)?`;
+	} else if (rule.endsWith("/")) {
+		// make `/` an optional group so we can match both /foo/ and /foo
+		// /foo/ => /foo(/)?
+		transformedRule = `${rule.substring(0, rule.length - 1)}(/)?`;
+	} else if (rule.endsWith("*")) {
+		transformedRule = rule;
+	} else {
+		transformedRule = `${rule}(/)?`;
+	}
+
+	// /foo* => /foo.* => ^/foo.*$
+	transformedRule = `^${transformedRule.replace("*", ".*")}$`;
+
+	// ^/foo.*$ => /^\/foo.*$/
+	return new RegExp(transformedRule);
 }
