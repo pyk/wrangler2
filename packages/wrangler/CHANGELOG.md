@@ -1,5 +1,44 @@
 # wrangler
 
+## 2.1.14
+
+### Patch Changes
+
+- [#2074](https://github.com/cloudflare/wrangler2/pull/2074) [`b08ab1e5`](https://github.com/cloudflare/wrangler2/commit/b08ab1e507a740f6f120b66a5435f4bd0a9cd42c) Thanks [@JacobMGEvans](https://github.com/JacobMGEvans)! - The type command aggregates bindings and [custom module rules](https://developers.cloudflare.com/workers/wrangler/configuration/#bundling) from config, then generates a DTS file for both service workers' `declare global { ... }` or module workers' `interface Env { ... }`
+
+  Custom module rules generate `declare module`s based on the module type (`Text`, `Data` or `CompiledWasm`).
+  Module Example Outputs:
+
+  **CompiledWasm**
+
+  ```ts
+  declare module "**/*.wasm" {
+  	const value: WebAssembly.Module;
+  	export default value;
+  }
+  ```
+
+  **Data**
+
+  ```ts
+  declare module "**/*.webp" {
+  	const value: ArrayBuffer;
+  	export default value;
+  }
+  ```
+
+  **Text**
+
+  ```ts
+  declare module "**/*.text" {
+  	const value: string;
+  	export default value;
+  }
+  ```
+
+  resolves #2034
+  resolves #2033
+
 ## 2.1.13
 
 ### Patch Changes
